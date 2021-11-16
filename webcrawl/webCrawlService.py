@@ -1,6 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 import math
+import re
 
 def get_movie_title(movie_code):
     url = 'https://movie.naver.com/movie/bi/mi/basic.naver?code={}'.format(movie_code)
@@ -15,6 +16,7 @@ def calc_pages(movie_code):
     result = requests.get(url)
     doc = BeautifulSoup(result.text, 'html.parser')
     all_count = doc.select('strong.total em')[1].get_text().strip()
+    numbers = re.sub(r'[^0-9]', '', all_count) # '11,971' => 11971
     pages = math.ceil(int(all_count) / 10)
     return pages
 
