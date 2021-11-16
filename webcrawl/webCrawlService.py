@@ -1,5 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
+import math
 
 def get_movie_title(movie_code):
     url = 'https://movie.naver.com/movie/bi/mi/basic.naver?code={}'.format(movie_code)
@@ -8,3 +9,53 @@ def get_movie_title(movie_code):
 
     title = doc.select('h3.h_movie a')[0].get_text()
     return title
+
+def calc_pages(movie_code):
+    url = 'https://movie.naver.com/movie/bi/mi/basic.naver?code={}'.format(movie_code)
+    result = requests.get(url)
+    doc = BeautifulSoup(result.text, 'html.parser')
+    all_count = doc.select('strong.total em')[1].get_text().strip()
+    pages = math.ceil(int(all_count) / 10)
+    return pages
+
+def get_reviews(movie_code, pages, title):
+    count = 0  # Total Review Count
+
+    for page in range(1, pages + 1):
+
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.131 Safari/537.36'}
+        new_url = 'https://movie.naver.com/movie/bi/mi/pointWriteFormList.naver?code={}&type=after&isActualPointWriteExecute=false&isMileageSubscriptionAlready=false&isMileageSubscriptionReject=false&page={}'.format(
+            movie_code, page)
+        result = requests.get(new_url, headers=headers)
+
+        doc = BeautifulSoup(result.text, 'html.parser')
+        # print(doc) 여기까진 소스코드가 출력됨.
+        review_list = doc.select('div.score_result ul li')
+        # select 가 코드에서부터 태그를 이용하여 정보를 수집하게 하는 듯
+
+        for one in review_list:
+            count += 1
+
+            print('## USER -> {} ##################################'.format(count))
+
+            # 평점 정보 수집
+            score = one.select('div.star_score em')[0].get_text()
+
+            # 리뷰 정보 수집
+            review = one.select('div.score_reple > p > span')[-1].get_text().strip()
+
+            # 작성자 정보 수집
+            original_writer = one.select('div.score_reple dt em')[0].get_text().strip()
+
+            idx_end = original_writer.find('(')
+            writer = original_writer[:idx_end]
+            # 날짜 정보 수집
+            original_date = one.select('div.score_reple dt em')[1].get_text()
+            date = original_date[:10]
+
+            print(':: TITLE: {}'.format(title))
+            print(':: REVIEW: {}'.format(review))
+            print(':: SCORE: {}'.format(score))
+            print(':: WRITER: {}'.format(writer))
+            print(':: DATE: {}'.format(date))
